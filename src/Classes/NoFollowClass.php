@@ -14,80 +14,80 @@ class NoFollowClass
     /**
      * Вкл./Откл. работы индексации ссылок
      * @var bool $enabled = true
-    */
+     */
     protected bool $enabled = true;
 
     /**
      * Модель - все ссылки с работой по индексации
      * @var array $model = []
-    */
+     */
     protected array $model = [];
 
     /**
      * Список исключаемых моделей
      * @var array $except_model = []
-    */
+     */
     protected array $except_model = [];
 
     /**
      * Список паттернов для поиска и замены ссылок в текстах
      * @var array $pattern = []
-    */
+     */
     protected array $pattern = [];
 
     /**
      * Список исключаемых доменов
      * @var array $except_domain = []
-    */
+     */
     protected array $except_domain = [];
 
     /**
      * Поля (свойства объекта), где ищем текст по работе с индексацией
      * @var array $fields = []
-    */
+     */
     protected array $fields = [];
 
     // Свойства общие
     /**
      * Модель - где будет искать текст
      * @var ?Model
-    */
+     */
     protected ?Model $initModel;
 
     /**
      * Список всех найденных текстов для работы с индексацией
      * @var array $description = []
-    */
+     */
     protected array $description = [];
 
     /**
      * Статус ошибки и его сообщения
      * @var array $error = ['status'=>false, 'message'=>[]]
-    */
+     */
     protected array $error = ['status'=>false, 'message'=>[]];
 
     /**
      * Список всех ссылок сгруппированные на два типа: закрытие от индексации; открытые от индексации
      * @var array $listLink = ['enabled'=>[], 'disabled'=>[]]
-    */
+     */
     protected array $listLink = ['enabled'=>[], 'disabled'=>[]];
 
     /**
      * Паттерн свойства rel="(.*)" тега <a>
      * @var string $pattern_rel = ''
-    */
+     */
     protected string $pattern_rel = '';
 
     /**
      * Количество обрабатываемых моделей за один подход
      * @var int $lazy_count = 500
-    */
+     */
     protected int $lazy_count = 500;
 
     /**
      * Список найденных новый ссылок в текстах
      * @var array $link_new = []
-    */
+     */
     protected array $link_new = [];
 
     // Закрытые общие методы
@@ -95,7 +95,7 @@ class NoFollowClass
      * Записываем найдены ошибки в работе индексации ссылок
      * @param string $message
      * @return void
-    */
+     */
     protected function setErrorMessage(string $message) : void{
         $this->error['status'] = true;
         $this->error['message'][] = $message;
@@ -104,7 +104,7 @@ class NoFollowClass
     /**
      * Получаем сообщение об ошибке в работе индексации ссылок
      * @return array
-    */
+     */
     protected function getErrorMessage() : array{
         return $this->error['status'] ? $this->error['message'] : [];
     }
@@ -112,7 +112,7 @@ class NoFollowClass
     /**
      * Инициализация параметров (свойств) класса
      * @return void
-    */
+     */
     protected function initParams() : void{
         if(!config()->has('nofollow')) {
             $this->setErrorMessage('Отсутствует конфигурационный файл');
@@ -133,7 +133,7 @@ class NoFollowClass
     /**
      * Проверяем на ошибку при индексации ссылок
      * @return bool
-    */
+     */
     protected function isError() : bool{
         return $this->error['status'];
     }
@@ -142,7 +142,7 @@ class NoFollowClass
      * Проверка на работоспособность класса
      * @param bool $is_string = false
      * @return bool
-    */
+     */
     protected function isValid(bool $is_string = false) : bool{
         $is_error = $this->isError();
         $is_enabled = $this->enabled;
@@ -159,7 +159,7 @@ class NoFollowClass
     /**
      * Сброс всех найденных текстов
      * @return NoFollowClass
-    */
+     */
     protected function resetDescription() : self{
         $this->description = [];
         return $this;
@@ -168,7 +168,7 @@ class NoFollowClass
     /**
      * Поиск и замена ссылок по паттернам
      * @return void
-    */
+     */
     protected function listLinks() : void{
         $skipLinks = $this->model['nofollow']::enabled()->where(function ($query){
             if(!count($this->except_domain)) return $query;
@@ -197,7 +197,7 @@ class NoFollowClass
      * Добавляем текст для обработки при найденных ссылок в тексте из модели
      * @param Model $model
      * @return NoFollowClass
-    */
+     */
     protected function setDescriptionModel(Model $model) : self{
         collect($this->fields)->each(function ($field) use ($model){
             $description = '';
@@ -211,6 +211,7 @@ class NoFollowClass
             if(
                 Str::contains($description, collect($this->listLink['enabled'])->pluck('domain')->toArray())
                 || Str::contains($description, collect($this->listLink['disabled'])->pluck('domain')->toArray())
+                || Str::contains($description, '<a')
             )
                 $this->description[$model->id][$field] = $description;
         });
@@ -221,7 +222,7 @@ class NoFollowClass
      * Добавляем текст для обработки при найденных ссылок в тексте для метода getString()
      * @param string $text
      * @return NoFollowClass
-    */
+     */
     protected function setDescriptionString(string $text) : self{
         if(
             Str::contains($text, collect($this->listLink['enabled'])->pluck('domain')->toArray())
@@ -251,7 +252,7 @@ class NoFollowClass
     /**
      * Вызываем изменения текста при найденных ссылок для закрытия / открытия индексации ссылок
      * @return NoFollowClass
-    */
+     */
     protected function writeDescription() : self{
         if(!$this->description) return $this;
         collect($this->description)->each(function ($desc, $index){
@@ -284,17 +285,18 @@ class NoFollowClass
 
     /**
      * Получаем измененный текст для метода getString()
+     * @param string $description = ''
      * @return string
-    */
-    protected function writeDescriptionString() : string{
-        return $this->description[0]['default'];
+     */
+    protected function writeDescriptionString(string $description = '') : string{
+        return $this->description[0]['default']??$description;
     }
 
     /**
      * Проверяем и добавляем новую ссылку взятую из текста для сохранения в таблицу
      * @param string $description
      * @return void
-    */
+     */
     protected function initLinkFind(string $description) : void{
         $links = [];
         preg_match_all('/\"(https\:\/\/|http\:\/\/)(.*?)\"/ui', $description, $links);
@@ -317,7 +319,7 @@ class NoFollowClass
     /**
      * Поиск новой ссылки найденной в тексте
      * @return NoFollowClass
-    */
+     */
     protected function linkNewFind() : self{
         if(!$this->description) return $this;
         collect($this->description)->each(function ($desc, $index){
@@ -331,7 +333,7 @@ class NoFollowClass
     /**
      * Сохраняем найденные ссылки в таблицу
      * @return bool
-    */
+     */
     protected function save() : bool{
         $status = false;
         DB::transaction(function() use (&$status) {
@@ -342,7 +344,7 @@ class NoFollowClass
 
     /**
      * Конструктор класса
-    */
+     */
     public function __construct(){
         $this->initParams();
         $this->listLinks();
@@ -353,7 +355,7 @@ class NoFollowClass
      * Сброс параметров класса (очищаем свойства класса)
      * @param bool $resetLinks = false
      * @return NoFollowClass
-    */
+     */
     public function reset(bool $resetLinks = false) : self{
         $this->initParams();
         if($resetLinks) $this->listLinks();
@@ -471,9 +473,8 @@ class NoFollowClass
      * @return string
      */
     public function getString(string $description = '') : string{
-        if(empty($description)) return '';
-        if(!$this->isValid(true)) return $description;
-        return $this->setDescriptionString($description)->writeDescription()->writeDescriptionString();
+        if(empty($description) || !$this->isValid(true)) return $description;
+        return $this->setDescriptionString($description)->writeDescription()->writeDescriptionString($description);
     }
 
     /**
@@ -492,7 +493,7 @@ class NoFollowClass
     /**
      * Список ошибок
      * @return array
-    */
+     */
     public function errorMessage() : array{
         return $this->getErrorMessage();
     }
