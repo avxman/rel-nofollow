@@ -3,7 +3,7 @@
     "description": "The module on/off follow inside links in a post for laravel >=8.0",
     "homepage": "https://github.com/avxman/rel-nofollow",
     "notification-url": "https://packagist.org/downloads/",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "type": "library",
     "license": "MIT",
     "authors": [
@@ -13,7 +13,7 @@
         }
     ],
     "require": {
-        "php": ">=8.*",
+        "php": "8.*",
         "laravel/framework": "^8.0"
     },
     "autoload": {
